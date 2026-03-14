@@ -1,72 +1,67 @@
 const tweetContainer = document.getElementById('tweetContainer');
 const searchInput = document.getElementById('searchInput');
-const pageTitle = document.getElementById('pageTitle');
 
-// APIからデータを取得して表示
-async function fetchTweets(type = 'trending', query = '') {
-    tweetContainer.innerHTML = '<div style="padding: 20px; color: #71767b;">読み込み中...</div>';
+async function fetchTweetsJSON(query = 'lang:ja') {
+    tweetContainer.innerHTML = '<div class="loading">JSONデータ解析中...</div>';
+
+    // RSS-Bridgeのインスタンス（Twitter検索をRSS化してくれる）
+    const rssUrl = `https://rss-bridge.org/bridge01/?action=display&bridge=TwitterBridge&context=Search+query&q=${encodeURIComponent(query)}&format=Mrss`;
     
+    // RSSをJSONに変換するAPI（無料枠を利用）
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+
     try {
-        const response = await fetch(`/api/nitter?type=${type}&q=${encodeURIComponent(query)}`);
-        const tweets = await response.json();
-        
-        if (!tweets || tweets.length === 0) {
-            tweetContainer.innerHTML = '<div style="padding: 20px;">見つかりませんでした。</div>';
-            return;
-        }
-        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status !== 'ok') throw new Error('API Error');
+
+        // RSSの項目をツイート風に整形
+        const tweets = data.items.map(item => {
+            return {
+                fullname: item.author || "Twitter User",
+                username: "@user",
+                avatar: "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png",
+                content: item.description.replace(/<[^>]*>?/gm, ''), // HTMLタグを除去
+                time: item.pubDate,
+                link: item.link
+            };
+        });
+
         renderTweets(tweets);
     } catch (error) {
-        tweetContainer.innerHTML = '<div style="padding: 20px; color: #f4212e;">データの取得に失敗しました。</div>';
+        console.error(error);
+        tweetContainer.innerHTML = '<div class="error">JSONの取得に失敗しました。</div>';
     }
 }
 
-// HTMLの生成
 function renderTweets(tweets) {
     tweetContainer.innerHTML = '';
     tweets.forEach(tweet => {
-        const tweetHtml = `
-            <div class="tweet">
-                <img src="${tweet.avatar}" class="avatar" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'">
+        const html = `
+            <div class="tweet" onclick="window.open('${tweet.link}')">
+                <img src="${tweet.avatar}" class="avatar">
                 <div class="tweet-content">
                     <div class="user-info">
                         <span class="fullname">${tweet.fullname}</span>
-                        <span class="username">${tweet.username}</span>
                         <span class="time">・ ${tweet.time}</span>
                     </div>
                     <div class="text">${tweet.content}</div>
                     <div class="actions">
-                        <span>💬 0</span>
-                        <span>🔄 ${tweet.retweets.toLocaleString()}</span>
-                        <span style="color: #f91880;">❤️ ${tweet.likes.toLocaleString()}</span>
-                        <span>📊 0</span>
+                        <span>🔄 RT</span>
+                        <span style="color: #f91880;">❤️ Like</span>
                     </div>
                 </div>
             </div>
         `;
-        tweetContainer.insertAdjacentHTML('beforeend', tweetHtml);
+        tweetContainer.insertAdjacentHTML('beforeend', html);
     });
 }
 
-// 検索実行
+// 検索ボタンなどの処理はこれまでと同じ
 function performSearch() {
     const q = searchInput.value;
-    if (q) {
-        pageTitle.innerText = `「${q}」の検索結果（いいね順）`;
-        fetchTweets('search', q);
-    }
+    if (q) fetchTweetsJSON(q);
 }
 
-// トレンドタグ用
-function quickSearch(word) {
-    searchInput.value = word;
-    performSearch();
-}
-
-// エンターキーで検索
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') performSearch();
-});
-
-// 初期起動：トレンドを表示
-fetchTweets('trending');
+window.onload = () => fetchTweetsJSON('lang:ja');
