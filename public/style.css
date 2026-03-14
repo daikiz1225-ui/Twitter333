@@ -1,0 +1,109 @@
+:root {
+    --bg-color: #000;
+    --border-color: #2f3336;
+    --text-main: #eff3f4;
+    --text-dim: #71767b;
+    --accent: #1d9bf0;
+}
+
+body {
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.layout {
+    display: flex;
+    max-width: 1250px;
+    margin: 0 auto;
+    height: 100vh;
+}
+
+/* 左サイドバー */
+.nav-bar {
+    width: 275px;
+    padding: 10px 20px;
+    border-right: 1px solid var(--border-color);
+}
+
+.logo { font-size: 30px; padding: 10px; margin-bottom: 10px; }
+.nav-item {
+    padding: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 99px;
+    transition: 0.2s;
+}
+.nav-item:hover { background-color: #181818; }
+.nav-item.active { font-weight: bold; }
+
+/* 中央フィード */
+.feed {
+    flex: 1;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+
+.top-nav {
+    position: sticky;
+    top: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(12px);
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    z-index: 10;
+}
+
+.search-bar { display: flex; gap: 10px; margin-top: 10px; }
+.search-bar input {
+    flex: 1;
+    background: #202327;
+    border: 1px solid transparent;
+    border-radius: 99px;
+    padding: 10px 20px;
+    color: white;
+}
+.search-bar input:focus { border-color: var(--accent); outline: none; }
+.search-bar button {
+    background: var(--text-main);
+    color: #000;
+    border: none;
+    border-radius: 99px;
+    padding: 0 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ツイートカード */
+.tweet {
+    display: flex;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+.tweet:hover { background-color: #080808; }
+.avatar { width: 48px; height: 48px; border-radius: 50%; margin-right: 12px; }
+.tweet-content { flex: 1; }
+.user-info { font-size: 15px; }
+.fullname { font-weight: bold; }
+.username, .time { color: var(--text-dim); }
+.text { margin-top: 4px; line-height: 1.5; white-space: pre-wrap; }
+.actions {
+    display: flex;
+    justify-content: space-between;
+    max-width: 400px;
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+/* 右パネル */
+.side-panel { width: 350px; padding: 20px; }
+.trending-card { background: #16181c; border-radius: 16px; padding: 15px; }
+.trend-tag {
+    padding: 12px 0;
+    cursor: pointer;
+    color: var(--accent);
+}
+.trend-tag:hover { text-decoration: underline; }
