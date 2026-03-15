@@ -1,8 +1,0 @@
-{
-  "name": "x-clone-nitter",
-  "version": "1.0.0",
-  "main": "api/nitter.js",
-  "dependencies": {
-    "node-fetch": "^3.3.2"
-  }
-}
