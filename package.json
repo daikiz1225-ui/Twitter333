@@ -1,5 +1,5 @@
 {
-  "name": "v-x-clone",
+  "name": "vercel-x-clone",
   "version": "1.0.0",
   "dependencies": {
     "agent-twitter-client": "^0.0.14"
