@@ -3,9 +3,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "POST only" });
   }
 
-  const urls = req.body.urls || [];
+  const urls = (req.body.urls || [])
+    .map(u => u.trim())
+    .filter(Boolean);
 
-  const TIMEOUT = 4000;
+  const TIMEOUT = 5000;
 
   async function fetchWithTimeout(url) {
     const controller = new AbortController();
@@ -24,31 +26,70 @@ export default async function handler(req, res) {
   async function checkInstance(base) {
     const start = Date.now();
 
-    const result = {
-      base,
+    let score = 0;
+    const checks = {
       stats: false,
       search: false,
       video: false,
-      ms: null,
     };
 
+    // ① stats（重要）
     const stats = await fetchWithTimeout(`${base}/api/v1/stats`);
-    result.stats = !!(stats && stats.ok);
+    if (stats && stats.ok) {
+      checks.stats = true;
+      score++;
+    }
 
+    // ② search（重要）
     const search = await fetchWithTimeout(`${base}/api/v1/search?q=test`);
-    result.search = !!(search && search.ok);
+    if (search && search.ok) {
+      checks.search = true;
+      score++;
+    }
 
-    const video = await fetchWithTimeout(`${base}/api/v1/videos/dQw4w9WgXcQ`);
-    result.video = !!(video && video.ok);
+    // ③ video（補助）
+    const video = await fetchWithTimeout(
+      `${base}/api/v1/videos/dQw4w9WgXcQ`
+    );
 
-    result.ms = Date.now() - start;
+    if (video && video.ok) {
+      try {
+        const data = await video.json();
 
-    return result;
+        if (data && data.videoId) {
+          checks.video = true;
+          score++; // 補助加点
+        }
+      } catch {
+        // 無視（壊れててもOK）
+      }
+    }
+
+    const ms = Date.now() - start;
+
+    // ❌ 完全NG判定（何も動かない）
+    if (score === 0) return null;
+
+    return {
+      base,
+      ms,
+      score,
+      checks
+    };
   }
 
-  const results = await Promise.all(
-    urls.map(u => checkInstance(u.trim()))
-  );
+  const results = await Promise.all(urls.map(checkInstance));
 
-  res.status(200).json(results);
+  const valid = results
+    .filter(Boolean)
+    .sort((a, b) => {
+      // スコア優先 → 速度
+      if (b.score !== a.score) return b.score - a.score;
+      return a.ms - b.ms;
+    });
+
+  res.status(200).json({
+    best: valid[0] || null,
+    all: valid
+  });
 }
