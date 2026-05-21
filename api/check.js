@@ -4,10 +4,10 @@ export default async function handler(req, res) {
   }
 
   const urls = (req.body.urls || [])
-    .map(u => u.trim())
+    .map(u => u.trim().replace(/\/$/, ""))
     .filter(Boolean);
 
-  const TIMEOUT = 5000;
+  const TIMEOUT = 7000;
 
   async function fetchWithTimeout(url) {
     const controller = new AbortController();
@@ -23,31 +23,33 @@ export default async function handler(req, res) {
     }
   }
 
+  async function safeCheck(base, path) {
+    const r = await fetchWithTimeout(`${base}${path}`);
+    if (!r || !r.ok) return false;
+
+    try {
+      await r.json();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function checkInstance(base) {
     const start = Date.now();
 
     let score = 0;
-    const checks = {
-      stats: false,
-      search: false,
-      video: false,
-    };
 
-    // ① stats（重要）
-    const stats = await fetchWithTimeout(`${base}/api/v1/stats`);
-    if (stats && stats.ok) {
-      checks.stats = true;
-      score++;
-    }
+    // ① stats（最重要）
+    const stats = await safeCheck(base, "/api/v1/stats");
+    if (stats) score++;
 
     // ② search（重要）
-    const search = await fetchWithTimeout(`${base}/api/v1/search?q=test`);
-    if (search && search.ok) {
-      checks.search = true;
-      score++;
-    }
+    const search = await safeCheck(base, "/api/v1/search?q=test");
+    if (search) score++;
 
     // ③ video（補助）
+    let videoOk = false;
     const video = await fetchWithTimeout(
       `${base}/api/v1/videos/dQw4w9WgXcQ`
     );
@@ -55,26 +57,33 @@ export default async function handler(req, res) {
     if (video && video.ok) {
       try {
         const data = await video.json();
-
-        if (data && data.videoId) {
-          checks.video = true;
-          score++; // 補助加点
+        if (data?.videoId || data?.title) {
+          videoOk = true;
+          score++;
         }
       } catch {
-        // 無視（壊れててもOK）
+        // 無視
       }
     }
 
     const ms = Date.now() - start;
 
-    // ❌ 完全NG判定（何も動かない）
+    // ★ここが重要：1つでも動けば候補
     if (score === 0) return null;
+
+    // ★生存判定（2以上で“安定”）
+    const alive = score >= 2;
 
     return {
       base,
       ms,
       score,
-      checks
+      alive,
+      checks: {
+        stats,
+        search,
+        video: videoOk
+      }
     };
   }
 
@@ -83,8 +92,13 @@ export default async function handler(req, res) {
   const valid = results
     .filter(Boolean)
     .sort((a, b) => {
-      // スコア優先 → 速度
+      // ① 安定性優先
+      if (a.alive !== b.alive) return b.alive - a.alive;
+
+      // ② スコア
       if (b.score !== a.score) return b.score - a.score;
+
+      // ③ 速度
       return a.ms - b.ms;
     });
 
