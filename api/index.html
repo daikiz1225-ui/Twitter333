@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Invidious Checker</title>
+</head>
+<body>
+  <h2>Invidious Instance Checker</h2>
+
+  <textarea id="urls" rows="10" cols="50"
+    placeholder="https://invidious.example.com"></textarea>
+  <br>
+
+  <button onclick="check()">Check</button>
+
+  <pre id="out"></pre>
+
+  <script>
+    async function check() {
+      const urls = document.getElementById("urls")
+        .value.split("\n")
+        .filter(Boolean);
+
+      const res = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls })
+      });
+
+      const data = await res.json();
+      document.getElementById("out").textContent =
+        JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
