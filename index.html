@@ -32,5 +32,25 @@
         JSON.stringify(data, null, 2);
     }
   </script>
+  <button onclick="best()">Best Instance</button>
+
+<script>
+async function best() {
+  const urls = document.getElementById("urls")
+    .value.split("\n")
+    .filter(Boolean);
+
+  const res = await fetch("/api/best", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ urls })
+  });
+
+  const data = await res.json();
+
+  document.getElementById("out").textContent =
+    JSON.stringify(data, null, 2);
+}
+</script>
 </body>
 </html>
